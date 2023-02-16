@@ -1,0 +1,192 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<style>
+  body {
+    padding: 100px;
+    width: 1000px;
+    margin: auto;
+    text-align: left;
+    font-weight: 300;
+    font-family: 'Open Sans', sans-serif;
+    color: #121212;
+  }
+  h1, h2, h3, h4 {
+    font-family: 'Source Sans Pro', sans-serif;
+  }
+</style>
+<title>CS 184 Rasterizer</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2023</h1>
+<h1 align="middle">Project 1: Rasterizer</h1>
+<h2 align="middle">MANH KHANG NGUYEN, CS184</h2>
+
+<br><br>
+
+<div>
+
+<h2 align="middle">Overview</h2>
+<p>This assignment introduces us to the basic techniques of rasterization. We first learn how to sample the pixel within a triangle using the 3-line test. Then we learn about supersampling to reduce the jaggy effect of the triangle edges. Next, we can utilize matrix operations for transformations on the triangles. After that, we implement Barycentric coordinates to average out pixel color. Later, we apply texture mapping to combine the texture that we want to any of our images. Finally, level sampling will be used to increase the speed of texture mapping, with a tradeoff of memory usage, but we can also achieve less jaggy images in return.</p>
+
+<h2 align="middle">Section I: Rasterization</h2>
+
+<h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
+
+<p>Task 1 asks us to rasterize triangles, in order word, we sample triangles, then try to replicate on our page by coloring the pixels that are within the bounding edges of the triangles. We need to determine whether the pixels are inside by computing the 3 lines test function. First, we need to orient the vertices of the triangle in counterclockwise direction to make sure the formula is correct. This matters for the dot product L(x, y) = V . N > 0 we are performing. </p>
+<p>This algorithm is no worse than one that checks each sample within the bounding box of the triangle because we have to traverse every pixel within the range of x values and y values of the 3 vertices anyways to perform the 3 lines test function. It is efficient in a way that we can eliminate every pixel not in the bounding box of the triangle without using an inclusion test, so smaller triangles would be computationally cheaper. </p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task1.png" align="middle" width="400px"/>
+        <figcaption align="middle">Triangles Rasterization</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+
+<h3 align="middle">Part 2: Antialiasing triangles</h3>
+
+<p>For every sampled pixel, we split it up to sample_rate pixels to render the image at a higher resolution. This means we can take more color samples for each pixel, which then we average these samples within one original pixel to determine the final color before shrinking the image to the original resolution. Supersampling is very useful to reduce the jaggies by blurring the edge or or filling the disjoint fractions that we normally see at the object edges when we zoom in very close to it. </p>
+<p>We see that the edges of the triangle are jaggy, and at some small angles there are disconnected edges. In using supersampling to antialias the triangles in this project, we blur out the edges to create a smoother transition between the two different colors, such as red triangle and white edge to create pink edges. </p>
+<p>Below are the result images of basic/test4.svg, at sample_rate of 1, 4, 9, and 16. Notice at sample_rate 1, skinny tip is disjointed, but higher sample_rate smooths this effect out by blurring the area in between.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task2-a.png" align="middle" width="400px"/>
+        <figcaption align="middle">sample_rate = 1</figcaption>
+      </td>
+      <td>
+        <img src="images/task2-b.png" align="middle" width="400px"/>
+        <figcaption align="middle">sample_rate = 4</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/task2-c.png" align="middle" width="400px"/>
+        <figcaption align="middle">sample_rate = 9</figcaption>
+      </td>
+      <td>
+        <img src="images/task2-d.png" align="middle" width="400px"/>
+        <figcaption align="middle">sample_rate = 16</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+<h3 align="middle">Part 3: Transforms</h3>
+
+<p>The image below is the cubeman doing jumping jack. We achieved this by rotating the arms and the legs, then translated the arms and the legs appropriately. </p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task3.png" align="middle" width="400px"/>
+        <figcaption align="middle">Jumping-Jack Cubeman</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+<h2 align="middle">Section II: Sampling</h2>
+
+<h3 align="middle">Part 4: Barycentric coordinates</h3>
+
+<p>Barycentric coordinate calculates the proportion of a point relative to the vertices. In our project, we have a sample point from our triangle, and we calculate the relative distance from the point to each vertex to obtain alpha, gamma, and beta. From then, we use alpha, gamma, and beta as the weights to how much of the color will be taken of each of the vertex’s directions of the sample to compute the color of the sampled pixel.</p>
+<p>In svg/basic/test7.svg, we have a single triangle with one red, one green, and one blue vertex. By using barycentric to compute the weighted color at the current location relative to all the vertices, we create a smoothly blended color triangle.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task4.png" align="middle" width="400px"/>
+        <figcaption align="middle">Color wheel</figcaption>
+      </td>
+    </tr>
+    <br>
+  </table>
+</div>
+
+<h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
+
+<p>Texture mapping converts the coordinate from the texture space so that we can map it to the image we have, by stretching or shrinking the vectors of the sampled points appropriately to the ratio of the mapping and mapped images. We use interpolation to get the triangle from our image space to get its relative location on the texture map. </p>
+<p>Nearest pixel sampling simply uses the color of the near pixel point by taking the floor of the mapping pixel.</p>
+<p>Bilinear pixel sampling samples all four pixels nearby by having different combinations of floor and ceil. Then we weight the distance horizontally and vertically using the lerp formula lerp(x, v0, v1) = v0 + x * (v1 - v0).</p>
+<p>The images below show nearest sampling at 1 sample per pixel, nearest sampling at 16 samples per pixel, bilinear sampling at 1 sample per pixel, and bilinear sampling at 16 samples per pixel.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task5-a.png" align="middle" width="400px"/>
+        <figcaption align="middle">nearest sampling at 1 sample per pixel</figcaption>
+      </td>
+      <td>
+        <img src="images/task5-b.png" align="middle" width="400px"/>
+        <figcaption align="middle">nearest sampling at 16 samples per pixel</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/task5-c.png" align="middle" width="400px"/>
+        <figcaption align="middle">bilinear sampling at 1 sample per pixel</figcaption>
+      </td>
+      <td>
+        <img src="images/task5-d.png" align="middle" width="400px"/>
+        <figcaption align="middle">bilinear sampling at 16 samples per pixel</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
+
+<p>Higher resolution images captured objects that are far away from the camera can sometimes have aliasing artifacts. Lowering the resolution can blur out this effect, but too low resolution can result in having too few details. We need to interrogate the images at different resolutions from the original to lowest resolution to see which one of these would provide the best result.</p>
+<p>Level sampling uses mipmap to reduce the image to smaller resolution to deal with antialiasing. The higher the level the lower the resolution. This means our image will be blurrier, but it can reduce the jaggy effects and improve the performance by having significantly less pixels to render images. However, we need more memory to store more information as we increase the mipmap levels. We can choose the nearest level or bilinear to get the different mipmap level resultant images.</p>
+<p>Below are four versions of the image, using the combinations of L_ZERO and P_NEAREST, L_ZERO and P_LINEAR, L_NEAREST and P_NEAREST, as well as L_NEAREST and P_LINEAR.</p>
+
+<div align="middle">
+  <table style="width=100%">
+    <tr>
+      <td>
+        <img src="images/task6-a.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_ZERO and P_NEAREST</figcaption>
+      </td>
+      <td>
+        <img src="images/task6-b.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_ZERO and P_LINEAR</figcaption>
+      </td>
+    </tr>
+    <br>
+    <tr>
+      <td>
+        <img src="images/task6-c.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_NEAREST and P_NEAREST</figcaption>
+      </td>
+      <td>
+        <img src="images/task6-d.png" align="middle" width="400px"/>
+        <figcaption align="middle">L_NEAREST and P_LINEAR</figcaption>
+      </td>
+    </tr>
+  </table>
+</div>
+
+
+</body>
+</html>
